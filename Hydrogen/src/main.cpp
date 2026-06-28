@@ -3,9 +3,53 @@ COMPILER PROJECT
 Following: https://www.youtube.com/watch?v=vcSijrRsrY0&list=PLUDlas_Zy_qC7c5tCgTMYq2idyyT241qs
 */
 
+#include <cctype>
+#include <cstdlib>
 #include <iostream>
-#include <fstream>
 #include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+
+enum class TokenType {
+    _return,
+    int_lit,
+    semi
+};
+
+struct Token {
+    TokenType type;
+    std::string value {};
+};
+
+std::vector<Token> tokenize(const std::string &contents) {
+    std::vector<Token> tokens;
+    std::string buf;
+
+    for (int i = 0; i < contents.length(); i++) {
+        char c = contents.at(i);
+        if (std::isalpha(c)) {
+            buf.push_back(c);
+            i++;
+            while (std::isalnum(contents.at(i))) {
+                buf.push_back(contents.at(i));
+                i++;
+            }
+            i--;
+
+            if (buf == "return") {
+                tokens.push_back({ TokenType::_return, "" });
+                buf.clear();
+                continue;
+            } else {
+                std::cerr << "unknown token: " << buf << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
+    return std::vector<Token>();
+}
 
 int main(int argc, char *argv[]) {
 
@@ -15,26 +59,18 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // file open
-    std::ifstream file(argv[1]);
-    if (file.is_open()) {
-        std::string line;
-        
-        // parse for return
-        std::string ret = "return";
-        if (line.find(ret) != std::string::npos) {
-            std::cout << ".global _start" << std::endl;
-            std::cout << "_start:" << std::endl;
-            std::cout << "mov rax, 60" << std::endl;
-            std::cout << "mov rdi, " << line.substr(line.find("return") + 6) << std::endl;
-            std::cout << "syscall" << std::endl;
-        } else {
-            std::cerr << "No return statement found" << std::endl;
-        }
+    // reading a file
+    std::string contents;
+    {
+        std::stringstream contents_stream;
+        std::ifstream file(argv[1]);
+        contents_stream << file.rdbuf();
+        contents = contents_stream.str();
+    }
 
-    } else {
-        std::cerr << "Failed to open file" << std::endl;
-        return 1;
+    std::vector<Token> tokens = tokenize(contents);
+    for (const Token &token : tokens) {
+        std::cout << "token found" << std::endl;
     }
 
     return 0;
